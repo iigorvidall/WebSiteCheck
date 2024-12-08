@@ -1,0 +1,463 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import  RegisterClientSite  from "./site-register"
+import { useToast } from "@/hooks/use-toast"
+import { MoreHorizontal, Pencil, Trash, Loader2 } from 'lucide-react'
+import { Status } from "@prisma/client"
+import { AdminManagement } from "./AdminManagement"
+
+interface ClientSite {
+  id: number
+  status: Status
+  clientName: string
+  clientUrl: string
+  keywords: string[]
+  numero: string
+  email: string
+  latency?: string
+  responseTime?: string
+  emailEnvied: boolean
+}
+
+export default function SiteVerifier() {
+  const [clientSites, setClientSites] = useState<ClientSite[]>([])
+  const [filteredSites, setFilteredSites] = useState<ClientSite[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingSite, setEditingSite] = useState<ClientSite | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const sitesPerPage = 5
+  const { toast } = useToast()
+  const [siteToDelete, setSiteToDelete] = useState<ClientSite | null>(null);
+  const [previousSites, setPreviousSites] = useState<ClientSite[]>([]);
+  const [activeCard, setActiveCard] = useState<"clients" | "form">("clients")
+
+  const fetchClientSites = async () => {
+    setIsLoading(true);
+    try {
+        const response = await fetch("/api/client-site");
+        if (!response.ok) {
+            throw new Error('Failed to fetch client sites');
+        }
+
+        const data = await response.json();
+        
+        const notifyingSites = new Set<string>();
+
+        const updatedSites = await Promise.all(data.map(async (site: ClientSite) => {
+            // Atualiza o site com o resultado de ping
+            const pingResult = await pingWithAllOrigins(site.clientUrl);
+            let updatedSite = { ...site, ...pingResult };
+
+            // Define o status automaticamente com base no ping
+            updatedSite.status = pingResult.status === "ONLINE" ? Status.ONLINE : Status.OFFLINE;
+
+            // Atualiza o status no banco de dados sem depender da entrada do usuário
+            await updateClientSite(updatedSite.id, { status: updatedSite.status });
+
+            // Lógica de envio de e-mail
+            if (
+                updatedSite.status === Status.OFFLINE && 
+                site.status === Status.ONLINE && 
+                !site.emailEnvied && 
+                !notifyingSites.has(updatedSite.id.toString())
+            ) {
+                console.log(`Site ${updatedSite.clientName} mudou para offline. Enviando notificação...`);
+
+                // Adiciona o site ao Mutex para evitar duplicação
+                notifyingSites.add(updatedSite.id.toString());
+
+                try {
+                    const notifyResponse = await fetch('/api/notify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            site: {
+                                clientName: updatedSite.clientName,
+                                clientUrl: updatedSite.clientUrl,
+                            },
+                        }),
+                    });
+
+                    if (notifyResponse.ok) {
+                        console.log(`Notificação enviada para ${updatedSite.clientName}`);
+                        updatedSite.emailEnvied = true;
+                        await updateClientSite(updatedSite.id, { emailEnvied: true, status: Status.OFFLINE });
+                        console.log(`Site atualizado para offline: ${updatedSite.clientName}`);
+                    } else {
+                        console.error(`Falha ao enviar notificação para ${updatedSite.clientName}`);
+                    }
+                } catch (error) {
+                    console.error(`Erro na requisição para enviar notificação para ${updatedSite.clientName}:`, error);
+                } finally {
+                    // Remove o site do Mutex após a conclusão da notificação
+                    notifyingSites.delete(updatedSite.id.toString());
+                }
+            } else if (
+                updatedSite.status === Status.ONLINE && 
+                site.status === Status.OFFLINE
+            ) {
+                // Site voltou a ficar online, resetamos o flag de email enviado
+                updatedSite.emailEnvied = false;
+                await updateClientSite(updatedSite.id, { emailEnvied: false, status: Status.ONLINE });
+                console.log(`Site voltou a ficar online: ${updatedSite.clientName}`);
+            }
+
+            return updatedSite;
+        }));
+
+        // Atualiza o estado com os sites atualizados
+        setClientSites(updatedSites);
+        setFilteredSites(updatedSites);
+        setPreviousSites(updatedSites);
+    } catch (error) {
+        console.error('Error fetching client sites:', error);
+        toast({
+            title: "Erro",
+            description: "Falha ao carregar os sites dos clientes. Por favor, tente novamente.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+  useEffect(() => {
+    const fetchAndLog = async () => {
+      console.log("Fetching client sites at:", new Date());
+      await fetchClientSites();
+    };
+
+    fetchAndLog(); // Initial call
+    const interval = setInterval(fetchAndLog, 300000);
+
+    return () => clearInterval(interval); // Clean up the interval on unmount
+  }, []);
+
+  const pingWithAllOrigins = async (url: string) => {
+    const start = Date.now()
+    try {
+      const response = await fetch(
+        `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        const latency = Date.now() - start
+        const httpCode = data.status.http_code
+        const responseTime = data.status.response_time
+
+        const status = httpCode === 200 ? Status.ONLINE : Status.OFFLINE
+
+        return {
+          status,
+          latency: `${latency}ms`,
+          responseTime: `${responseTime}ms`,
+        }
+      } else {
+        throw new Error("Network response was not ok.")
+      }
+    } catch (error) {
+      const latency = Date.now() - start
+      return {
+        status: Status.OFFLINE,
+        latency: `${latency}ms`,
+        responseTime: "-",
+      }
+    }
+  }
+
+  const updateClientSite = async (id: number, data: Partial<ClientSite>) => {
+    try {
+      const response = await fetch(`/api/client-site/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update client site');
+      }
+    } catch (error) {
+      console.error('Error updating client site:', error);
+    }
+  }
+
+  useEffect(() => {
+    const filtered = clientSites
+      .filter((site) => {
+
+        const searchTermLower = searchTerm.toLowerCase();
+
+        // Verifica se o nome do cliente inclui o termo de busca
+        const nameMatch = site.clientName.toLowerCase().includes(searchTermLower);
+
+        // Verifica se alguma palavra-chave inclui o termo de busca
+        const keywordsMatch = site.keywords.some((keyword) =>
+          keyword.toLowerCase().includes(searchTermLower)
+        );
+
+        // Verifica se a URL inclui o termo de busca
+        const urlMatch = site.clientUrl.toLowerCase().includes(searchTermLower);
+
+        // Aplica o filtro de status
+        const statusMatch = statusFilter === "all" || site.status.toLowerCase() === statusFilter.toLowerCase();
+
+        return (nameMatch || keywordsMatch || urlMatch) && statusMatch;
+      })
+      .sort((a, b) => {
+        if (a.status === Status.ONLINE && b.status === Status.OFFLINE) return -1;
+        if (a.status === Status.OFFLINE && b.status === Status.ONLINE) return 1;
+        return 0;
+      });
+  
+    setFilteredSites(filtered);
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, clientSites]);
+
+  const indexOfLastSite = currentPage * sitesPerPage
+  const indexOfFirstSite = indexOfLastSite - sitesPerPage
+  const currentSites = filteredSites.slice(indexOfFirstSite, indexOfLastSite)
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+
+  const handleSuccess = async () => {
+    await fetchClientSites()
+    setIsDialogOpen(false)
+    setEditingSite(null)
+    toast({
+      title: "Sucesso",
+      description: "Operação realizada com sucesso!",
+      duration: 3000,
+    })
+  }
+
+  const handleEdit = (site: ClientSite) => {
+    setEditingSite(site)
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = (site: ClientSite) => {
+    setSiteToDelete(site);
+    setIsDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (siteToDelete) {
+      try {
+        const response = await fetch(`/api/client-site/${siteToDelete.id}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          await fetchClientSites();
+          toast({
+            title: "Sucesso",
+            description: "Site deletado com sucesso!",
+            duration: 3000,
+          });
+        } else {
+          throw new Error("Falha ao deletar o site");
+        }
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao deletar o site. Tente novamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsDialogOpen(false);
+        setSiteToDelete(null);
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center bg-gray-100 font-sans p-6">
+      <div className="w-full max-w-7xl mx-auto mb-4">
+      <div className="inline-flex rounded-md shadow-sm" role="group">
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium border text-stone-700 rounded-l-lg focus:z-10 focus:ring-2 focus:ring-gray-400 focus:text-stone-700
+          ${activeCard === 'clients' 
+            ? 'bg-gray-100 text-stone-700 ' 
+            : 'bg-white text-stone-700 hover:bg-gray-100 hover:text-stone-700'}`}
+          onClick={() => setActiveCard("clients")}
+        >
+          Sites
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-medium border text-stone-700 rounded-r-lg focus:z-10 focus:ring-2 focus:ring-gray-400 focus:text-stone-700
+          ${activeCard === 'form' 
+            ? 'bg-gray-100 text-stone-700 '
+            : 'bg-white text-stone-700 hover:bg-gray-100 hover:text-stone-700'}`}
+          onClick={() => setActiveCard("form")}
+        >
+          Configurações
+        </button>
+      </div>
+
+        </div>
+      {activeCard === "clients" ? (
+      <Card className="w-full max-w-7xl max-h-6xl mx-auto">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">VERIFICADOR DE SITES</CardTitle>
+            <CardDescription>Coloque aqui os sites que você deseja verificar o status</CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) {
+          setEditingSite(null);
+          setSiteToDelete(null);
+        }
+      }}>
+        <DialogTrigger asChild>
+          <Button>Adicionar novo site</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          {siteToDelete ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Confirmar exclusão</DialogTitle>
+                <DialogDescription>
+                  Tem certeza que deseja excluir o site {siteToDelete.clientName}?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button variant="destructive" onClick={confirmDelete}>Excluir</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>{editingSite ? "Editar site" : "Adicionar novo site"}</DialogTitle>
+                <DialogDescription>
+                  {editingSite ? "Edite os detalhes do site cliente aqui." : "Preencha os detalhes do novo site cliente aqui."}
+                </DialogDescription>
+              </DialogHeader>
+              <RegisterClientSite onSuccess={handleSuccess} editingSite={editingSite} />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+        </CardHeader>
+        <CardContent>
+          <div className="flex space-x-4 mb-4">
+            <Input
+              type="text"
+              placeholder="Buscar por nome do cliente, palavra-chave ou URL"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-grow"
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="ONLINE">Online</SelectItem>
+                <SelectItem value="OFFLINE">Offline</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-lg">Carregando dados...</span>
+            </div>
+          ) : (
+            <>
+            {currentSites.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Tempo médio de carregamento</TableHead>
+                    <TableHead>Site (URL)</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentSites.map((site) => (
+                    <TableRow key={site.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full mr-2 ${site.status === Status.ONLINE ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{site.clientName}</TableCell>
+                      <TableCell>{site.responseTime}</TableCell>
+                      <TableCell>
+                        <a href={site.clientUrl} target="_blank" rel="noopener noreferrer">
+                          {site.clientUrl}
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Abrir menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(site)}>
+                              <Pencil className="mr-2 h-4 w-4 text-blue-500" />
+                              <span className="text-blue-500">Editar</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(site)}>
+                              <Trash className="mr-2 h-4 w-4 text-red-500" />
+                              <span className="text-red-500">Apagar</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-lg text-gray-500">Não há registros adicionados.</p>
+              </div>
+            )}
+            <div className="flex justify-center space-x-2 mt-4">
+              {Array.from({ length: Math.ceil(filteredSites.length / sitesPerPage) }, (_, i) => (
+                <Button
+                  key={i}
+                  variant={currentPage === i + 1 ? "default" : "outline"}
+                  onClick={() => paginate(i + 1)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+    ) : (
+      <AdminManagement />
+    )}
+  </div>
+  )
+}
+
