@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  ONLINE
+  OFFLINE
+  //MAINTENANCE Exemplo de novo futuro estado
+}
+
+model ClientSite {
+  id           Int      @id @default(autoincrement())
+  clientName   String
+  clientUrl    String   @unique
+  status       Status
+  keywords     String[]
+  createdAt    DateTime @default(now())
+  emailEnvied  Boolean  @default(false)
+  responseTime Int?
+}
+
+model Administrador {
+  id     Int    @id @default(autoincrement())
+  nome   String
+  email  String @unique
+  numero String? // Adicionado campo opcional para número
+}

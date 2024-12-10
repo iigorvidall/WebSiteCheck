@@ -7,7 +7,10 @@ interface UpdateClientSiteData {
   clientUrl?: string;
   status?: Status;
   keywords?: string[];
+  emailEnvied?: boolean;
+  responseTime?: number;
 }
+
 
 class ClientSiteRepository {
   async createClientSite(data: {
@@ -27,9 +30,21 @@ class ClientSiteRepository {
     });
   }
 
-  async getAllClientSites() {
-    return await prisma.clientSite.findMany();
-  }
+async getAllClientSites() {
+  return await prisma.clientSite.findMany({
+    select: {
+      id: true,
+      clientName: true,
+      clientUrl: true,
+      status: true,
+      emailEnvied: true,
+      responseTime: true,  // Garantindo que o campo responseTime seja retornado
+      keywords: true,
+      createdAt: true,
+    },
+  });
+}
+
 
   async updateClientSite(
     id: number,

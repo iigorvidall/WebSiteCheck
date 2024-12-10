@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription  } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Pencil, Trash } from 'lucide-react'
 
@@ -21,6 +21,7 @@ export function AdminManagement() {
   const [newAdmin, setNewAdmin] = useState({ nome: '', email: '', numero: '' })
   const [editingAdmin, setEditingAdmin] = useState<Administrator | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [adminToDelete, setAdminToDelete] = useState<Administrator | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -103,29 +104,36 @@ export function AdminManagement() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    try {
-      const response = await fetch(`/api/admin/${id}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) {
-        throw new Error('Failed to delete administrator')
+  const handleDelete = (admin: Administrator) => {
+    setAdminToDelete(admin);
+  };
+
+  const confirmDelete = async () => {
+    if (adminToDelete) {
+      try {
+        const response = await fetch(`/api/admin/${adminToDelete.id}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          throw new Error('Failed to delete administrator');
+        }
+        await fetchAdmins();
+        toast({
+          title: "Sucesso",
+          description: "Administrador removido com sucesso!",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error deleting administrator:', error);
+        toast({
+          title: "Erro",
+          description: "Falha ao remover administrador. Por favor, tente novamente.",
+          variant: "destructive",
+        });
       }
-      await fetchAdmins()
-      toast({
-        title: "Sucesso",
-        description: "Administrador removido com sucesso!",
-        duration: 3000,
-      })
-    } catch (error) {
-      console.error('Error deleting administrator:', error)
-      toast({
-        title: "Erro",
-        description: "Falha ao remover administrador. Por favor, tente novamente.",
-        variant: "destructive",
-      })
+      setAdminToDelete(null);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-7xl max-h-6xl mx-auto">
@@ -194,9 +202,25 @@ export function AdminManagement() {
                   }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" onClick={() => handleDelete(admin.id)}>
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  <Dialog open={!!adminToDelete} onOpenChange={(open) => !open && setAdminToDelete(null)}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" onClick={() => handleDelete(admin)}>
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Confirmar exclusão</DialogTitle>
+                        <DialogDescription>
+                          Tem certeza que deseja excluir o administrador {adminToDelete?.nome}?
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="flex justify-end space-x-2 mt-4">
+                        <Button variant="outline" onClick={() => setAdminToDelete(null)}>Cancelar</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Excluir</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </TableCell>
               </TableRow>
             ))}

@@ -39,7 +39,7 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
   }>({
     clientName: "",
     clientUrl: "",
-    status: Status.OFFLINE,
+    status: Status.ONLINE,
     keywords: "",
   })
 
@@ -107,7 +107,7 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
           setFormData({
             clientName: "",
             clientUrl: "",
-            status: Status.ONLINE,
+            status: Status.OFFLINE,
             keywords: "",
           });
           setKeywordsArray([]);
@@ -159,6 +159,7 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
           id="clientUrl"
           name="clientUrl"
           type="url"
+          placeholder="https://example.com"
           value={formData.clientUrl}
           onChange={handleChange}
           required
