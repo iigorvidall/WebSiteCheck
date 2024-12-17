@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -41,7 +41,7 @@ export default function SiteVerifier() {
   const [siteToDelete, setSiteToDelete] = useState<ClientSite | null>(null);
   const [activeCard, setActiveCard] = useState<"clients" | "form">("clients")
 
-  const fetchClientSites = async () => {
+  const fetchClientSites = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/client-site");
@@ -52,7 +52,7 @@ export default function SiteVerifier() {
       setClientSites(data);
       setFilteredSites(data);
     } catch (error) {
-      console.error('Error fetching client sites:', error);
+      console.error(error); // Usando a variável error para logar
       toast({
         title: "Erro",
         description: "Falha ao carregar os sites dos clientes. Por favor, tente novamente.",
@@ -61,11 +61,11 @@ export default function SiteVerifier() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchClientSites();
-  }, []);
+  }, [fetchClientSites]);
 
   useEffect(() => {
     const filtered = clientSites
@@ -133,7 +133,7 @@ export default function SiteVerifier() {
         } else {
           throw new Error("Falha ao deletar o site");
         }
-      } catch (error) {
+      } catch {
         toast({
           title: "Erro",
           description: "Erro ao deletar o site. Tente novamente.",
@@ -321,4 +321,3 @@ export default function SiteVerifier() {
     </div>
   )
 }
-

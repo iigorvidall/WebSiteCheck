@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useEffect } from "react"
 import { Status } from "@prisma/client"
 import { Button } from "@/components/ui/button"
@@ -52,11 +53,6 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     setErrors(prev => ({ ...prev, [name]: undefined }))
-  }
-
-  const handleStatusChange = (value: string) => {
-    setFormData(prev => ({ ...prev, status: value as Status }))
-    setErrors(prev => ({ ...prev, status: undefined }))
   }
 
   // Função para adicionar palavras-chave ao pressionar Enter ou espaço
@@ -120,7 +116,7 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
           const errorData = await response.json();
           setErrors({ general: errorData.message || "Ocorreu um erro ao processar sua solicitação." });
         }
-      } catch (error) {
+      } catch {
         setErrors({ general: "Erro ao enviar dados. Tente novamente." });
       } finally {
         setIsSubmitting(false);
@@ -167,33 +163,33 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
         {errors.clientUrl && <p className="text-red-500 text-sm">{errors.clientUrl}</p>}
       </div>
       <div className="space-y-2">
-      <Label htmlFor="keywords">Keywords</Label>
-    <Input
-      id="keywords"
-      name="keywords"
-      value={formData.keywords}
-      onChange={handleChange}
-      onKeyDown={handleKeywordInput}
-      placeholder="Digite uma palavra e pressione Enter ou Espaço"
-    />
-    <div className="flex flex-wrap gap-2">
-      {keywordsArray.map((keyword, index) => (
-      <div
-        key={index}
-        className="bg-gray-200 text-sm px-2 py-1 rounded flex items-center"
-      >
-        {keyword}
-        <button
-          type="button"
-          className="ml-2 text-red-500 hover:text-red-700"
-          onClick={() => removeKeyword(keyword)}
-        >
-          &times;
-        </button>
-      </div>
-       ))}
-    </div>
-    {errors.keywords && <p className="text-red-500 text-sm">{errors.keywords}</p>}
+        <Label htmlFor="keywords">Keywords</Label>
+        <Input
+          id="keywords"
+          name="keywords"
+          value={formData.keywords}
+          onChange={handleChange}
+          onKeyDown={handleKeywordInput}
+          placeholder="Digite uma palavra e pressione Enter ou Espaço"
+        />
+        <div className="flex flex-wrap gap-2">
+          {keywordsArray.map((keyword, index) => (
+            <div
+              key={index}
+              className="bg-gray-200 text-sm px-2 py-1 rounded flex items-center"
+            >
+              {keyword}
+              <button
+                type="button"
+                className="ml-2 text-red-500 hover:text-red-700"
+                onClick={() => removeKeyword(keyword)}
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+        </div>
+        {errors.keywords && <p className="text-red-500 text-sm">{errors.keywords}</p>}
       </div>
       {errors.general && <p className="text-red-500 text-sm">{errors.general}</p>}
       <Button type="submit" disabled={isSubmitting}>
@@ -204,4 +200,3 @@ const RegisterClientSite: React.FC<RegisterClientSiteProps> = ({
 }
 
 export default RegisterClientSite
-

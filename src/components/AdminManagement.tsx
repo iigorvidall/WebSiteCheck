@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription  } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -24,11 +24,7 @@ export function AdminManagement() {
   const [adminToDelete, setAdminToDelete] = useState<Administrator | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchAdmins()
-  }, [])
-
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     try {
       const response = await fetch('/api/admin')
       if (!response.ok) {
@@ -44,7 +40,11 @@ export function AdminManagement() {
         variant: "destructive",
       })
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchAdmins()
+  }, [fetchAdmins])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -230,4 +230,3 @@ export function AdminManagement() {
     </Card>
   )
 }
-
