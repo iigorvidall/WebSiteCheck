@@ -1,0 +1,42 @@
+[33mcommit 944ad9d65251f3d6d9a98075bf21f58d9caf057f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: iigorvidall <igorr.vidall@gmail.com>
+Date:   Tue Dec 17 16:59:53 2024 -0300
+
+    Desabilitar regra ESLint para variáveis não utilizadas
+
+[33mcommit 88801510ae9b517e10fc9fd9fc2e3901f0430c64[m
+Merge: a6ac87e a3de61c
+Author: iigorvidall <igorr.vidall@gmail.com>
+Date:   Tue Dec 17 16:49:05 2024 -0300
+
+    Merge branch 'main' of https://github.com/iigorvidall/WebSiteCheck
+
+[33mcommit a6ac87ebd081851a6cbfc42d521754b9a21566bd[m
+Author: iigorvidall <igorr.vidall@gmail.com>
+Date:   Tue Dec 17 16:45:41 2024 -0300
+
+    Atualizações nos arquivos de API e componentes para corrigir erros
+
+[33mcommit a3de61c4c358c8fb75a262d0d54f24d25ecf88ab[m
+Author: iigorvidall <igorr.vidall@gmail.com>
+Date:   Tue Dec 17 15:30:07 2024 -0300
+
+    Initial commit
+
+[33mcommit 5bb266f4f6caea580b3c3ffd6626275e3a51cdd1[m
+Author: Hugo Vidal <vidalshugo1@gmai.com>
+Date:   Tue Dec 10 15:14:31 2024 -0300
+
+    Organizando código
+
+[33mcommit 9fb169fbab09efcabc5cf017e48717dc2428bac1[m
+Author: Hugo Vidal <vidalshugo1@gmai.com>
+Date:   Sun Dec 8 20:21:32 2024 -0300
+
+    Projeto inicial
+
+[33mcommit 91293ee785746eb95ff6f70c9c5c5fa81a950a58[m
+Author: Hugo Vidal <vidalshugo1@gmai.com>
+Date:   Thu Dec 5 18:52:29 2024 -0300
+
+    Initial commit from Create Next App
