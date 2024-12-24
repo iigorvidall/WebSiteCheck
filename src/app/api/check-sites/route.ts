@@ -59,7 +59,7 @@ async function checkAndUpdateSites() {
 
           try {
             // Chama a API de notificação
-            const notifyResponse = await fetch('http://localhost:3000/api/notify', {
+            const notifyResponse = await fetch('http://localhost:8080/api/notify', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
