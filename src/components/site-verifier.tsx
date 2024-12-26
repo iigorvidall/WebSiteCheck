@@ -301,16 +301,35 @@ export default function SiteVerifier() {
                   </div>
                 )}
                 <div className="flex justify-center space-x-2 mt-4">
-                  {Array.from({ length: Math.ceil(filteredSites.length / sitesPerPage) }, (_, i) => (
-                    <Button
-                      key={i}
-                      variant={currentPage === i + 1 ? "default" : "outline"}
-                      onClick={() => paginate(i + 1)}
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
-                </div>
+  {(() => {
+    const totalPages = Math.ceil(filteredSites.length / sitesPerPage);
+    const visibleButtons = 9; // Total de botões visíveis
+    const halfVisible = Math.floor(visibleButtons / 2); // Metade visível de cada lado
+
+    // Determinar o início e o fim do intervalo
+    let startPage = Math.max(currentPage - halfVisible, 1);
+    let endPage = Math.min(currentPage + halfVisible, totalPages);
+
+    // Ajustar o intervalo se estiver próximo ao início ou ao fim
+    if (currentPage <= halfVisible) {
+      endPage = Math.min(visibleButtons, totalPages);
+    } else if (currentPage > totalPages - halfVisible) {
+      startPage = Math.max(totalPages - visibleButtons + 1, 1);
+    }
+
+    // Gerar os botões de paginação dentro do intervalo
+    return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+      <Button
+        key={page}
+        variant={currentPage === page ? "default" : "outline"}
+        onClick={() => paginate(page)}
+      >
+        {page}
+      </Button>
+    ));
+  })()}
+</div>
+
               </>
             )}
           </CardContent>
