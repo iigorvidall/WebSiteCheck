@@ -119,7 +119,7 @@ async function checkAndUpdateSitesInBatches(batchSize: number, interval: number)
 // Handler para a rota
 export async function GET() {
   const batchSize = 20; // Número de sites por lote
-  const interval = 10000; // Intervalo entre lotes em milissegundos (10 segundos)
+  const interval = 2500; // Intervalo entre lotes em milissegundos (10 segundos)
 
   try {
     await checkAndUpdateSitesInBatches(batchSize, interval);
