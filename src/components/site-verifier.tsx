@@ -301,33 +301,52 @@ export default function SiteVerifier() {
                   </div>
                 )}
                 <div className="flex justify-center space-x-2 mt-4">
-  {(() => {
-    const totalPages = Math.ceil(filteredSites.length / sitesPerPage);
-    const visibleButtons = 9; // Total de botões visíveis
-    const halfVisible = Math.floor(visibleButtons / 2); // Metade visível de cada lado
+                {(() => {
+  const totalPages = Math.ceil(filteredSites.length / sitesPerPage);
+  const visibleButtons = 9; // Total de botões visíveis
+  const halfVisible = Math.floor((visibleButtons - 2) / 2); // Metade visível de cada lado (menos o primeiro e último)
 
-    // Determinar o início e o fim do intervalo
-    let startPage = Math.max(currentPage - halfVisible, 1);
-    let endPage = Math.min(currentPage + halfVisible, totalPages);
+  // Determinar o intervalo central
+  let startPage = Math.max(currentPage - halfVisible, 2); // Começa no 2 (já que 1 é fixo)
+  let endPage = Math.min(currentPage + halfVisible, totalPages - 1); // Não ultrapassa a penúltima página
 
-    // Ajustar o intervalo se estiver próximo ao início ou ao fim
-    if (currentPage <= halfVisible) {
-      endPage = Math.min(visibleButtons, totalPages);
-    } else if (currentPage > totalPages - halfVisible) {
-      startPage = Math.max(totalPages - visibleButtons + 1, 1);
-    }
+  // Ajustar o intervalo se estiver próximo ao início ou ao fim
+  if (currentPage <= halfVisible + 1) {
+    endPage = Math.min(visibleButtons - 1, totalPages - 1); // Último botão ajustado, mantendo o primeiro fixo
+  } else if (currentPage > totalPages - halfVisible - 1) {
+    startPage = Math.max(totalPages - visibleButtons + 2, 2); // Primeiro botão ajustado, mantendo o último fixo
+  }
 
-    // Gerar os botões de paginação dentro do intervalo
-    return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+  // Gerar os botões de paginação
+  return (
+    <>
       <Button
-        key={page}
-        variant={currentPage === page ? "default" : "outline"}
-        onClick={() => paginate(page)}
+        variant={currentPage === 1 ? "default" : "outline"}
+        onClick={() => paginate(1)}
       >
-        {page}
+        1
       </Button>
-    ));
-  })()}
+      {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+        <Button
+          key={page}
+          variant={currentPage === page ? "default" : "outline"}
+          onClick={() => paginate(page)}
+        >
+          {page}
+        </Button>
+      ))}
+      {totalPages > 1 && (
+        <Button
+          variant={currentPage === totalPages ? "default" : "outline"}
+          onClick={() => paginate(totalPages)}
+        >
+          {totalPages}
+        </Button>
+      )}
+    </>
+  );
+})()}
+
 </div>
 
               </>
