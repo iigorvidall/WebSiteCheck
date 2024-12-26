@@ -320,12 +320,18 @@ export default function SiteVerifier() {
   // Gerar os botões de paginação
   return (
     <>
+      {/* Botão da página 1 */}
       <Button
         variant={currentPage === 1 ? "default" : "outline"}
         onClick={() => paginate(1)}
       >
         1
       </Button>
+      {/* Adicionar ... após o botão 1, se necessário */}
+      {startPage > 2 && (
+        <span className="px-2">...</span>
+      )}
+      {/* Botões intermediários */}
       {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
         <Button
           key={page}
@@ -335,6 +341,11 @@ export default function SiteVerifier() {
           {page}
         </Button>
       ))}
+      {/* Adicionar ... antes do botão da última página, se necessário */}
+      {endPage < totalPages - 1 && (
+        <span className="px-2">...</span>
+      )}
+      {/* Botão da última página */}
       {totalPages > 1 && (
         <Button
           variant={currentPage === totalPages ? "default" : "outline"}
@@ -346,6 +357,7 @@ export default function SiteVerifier() {
     </>
   );
 })()}
+
 
 </div>
 
