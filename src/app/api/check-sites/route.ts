@@ -35,6 +35,8 @@ async function pingWithAllOrigins(url: string) {
 async function checkAndUpdateSites() {
   try {
     const sites = await clientSiteRepository.getAllClientSites();
+    console.log("============SITES=========="+sites);
+    
 
     const updatedSites = await Promise.all(
       sites.map(async (site: ClientSite) => {
