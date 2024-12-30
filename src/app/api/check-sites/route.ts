@@ -1,67 +1,33 @@
 import { Status, ClientSite } from '@prisma/client';
 import { clientSiteRepository } from '../../repository/ClientSiteRepository';
 import { NextResponse } from 'next/server';
-import axios from 'axios';
 
-const APIFY_API_KEY = 'apify_api_TqYQdxV2BslVHqNWLtd8xRhKALnyCr3mO4Vb';  // Substitua pela sua chave de API
-const ACTOR_ID = 'ID_DO_SEU_ACTOR';  // Substitua pelo ID do seu Actor no Apify
+// Mutex para evitar notificações duplicadas
 const notifyingSites = new Set<string>();
 
-// Função para verificar se a URL está online via Apify Task
-// Função para verificar se a URL está online via Apify Task
-async function pingWithApify(url: string) {
+// Função de ping com All Origins
+async function pingWithAllOrigins(url: string) {
   const start = Date.now();
-  
   try {
-    // Chama a Task no Apify com a URL
-    const response = await axios.post(
-      `https://api.apify.com/v2/acts/${ACTOR_ID}/tasks`,
-      { input: { url } },  // Envia a URL como input para a Task
-      {
-        headers: {
-          Authorization: `Bearer ${APIFY_API_KEY}`,
-        },
-      }
-    );
-
-    const taskId = response.data.data.id;  // ID da Task criada no Apify
-    const taskStatus = await checkTaskStatus(taskId);  // Verifica o status da Task
-
-    const latency = Date.now() - start; // Calculando o tempo de resposta
-
-    return {
-      status: taskStatus === 'SUCCEEDED' ? Status.ONLINE : Status.OFFLINE, // Se a Task foi bem-sucedida, o site está online
-      latency: `${latency}ms`, // Tempo de resposta
-      responseTime: latency,  // Tempo de resposta para ser salvo no banco
-    };
+    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    if (response.ok) {
+      const latency = Date.now() - start; // Calculando o tempo de resposta
+      const data = await response.json();
+      const httpCode = data.status.http_code;
+      return {
+        status: httpCode === 200 ? Status.ONLINE : Status.OFFLINE,
+        latency: `${latency}ms`, // Tempo de resposta em milissegundos
+        responseTime: latency,  // Para ser salvo no banco de dados
+      };
+    }
+    throw new Error('Network response was not ok.');
   } catch (error) {
     const latency = Date.now() - start;
-    console.error('Erro ao verificar status via Apify:', error);
     return {
       status: Status.OFFLINE,
       latency: `${latency}ms`,
-      responseTime: latency,
+      responseTime: latency, // Também salvar a latência mesmo em caso de falha
     };
-  }
-}
-
-
-// Função para verificar o status da Task após ser executada
-async function checkTaskStatus(taskId: string) {
-  try {
-    const response = await axios.get(
-      `https://api.apify.com/v2/acts/${ACTOR_ID}/tasks/${taskId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${APIFY_API_KEY}`,
-        },
-      }
-    );
-
-    return response.data.data.status; // Retorna o status da Task (SUCCEEDED, FAILED, etc.)
-  } catch (error) {
-    console.error('Erro ao verificar o status da Task:', error);
-    return 'FAILED';  // Se não conseguir verificar o status, retornará FAILED
   }
 }
 
@@ -75,12 +41,12 @@ async function checkAndUpdateSitesInBatches(batchSize: number, interval: number)
       // Divide os sites em lotes
       const batch = sites.slice(index, index + batchSize);
 
-      console.log(`Pinging batch: ${index + 1} a ${index + batch.length}`);
+      console.log(`Pinging batch: ${index + 1} to ${index + batch.length}`);
 
       // Faz ping para os sites do lote atual
       const updatedBatch = await Promise.all(
         batch.map(async (site: ClientSite) => {
-          const pingResult = await pingWithApify(site.clientUrl); // Usando a função para fazer o ping via Apify
+          const pingResult = await pingWithAllOrigins(site.clientUrl);
           let updatedSite = { ...site, ...pingResult };
 
           // Atualiza o banco de dados
@@ -91,7 +57,7 @@ async function checkAndUpdateSitesInBatches(batchSize: number, interval: number)
 
           console.log(`Site ${site.clientName} atualizado para ${updatedSite.status} com responseTime de ${updatedSite.responseTime}ms`);
 
-          // Lógica de notificação
+          // Lógica de notificação permanece inalterada
           if (updatedSite.status === Status.OFFLINE && site.status === Status.ONLINE) {
             console.log(`Site ${updatedSite.clientName} mudou para offline. Enviando notificação...`);
             notifyingSites.add(site.id.toString());
@@ -153,7 +119,7 @@ async function checkAndUpdateSitesInBatches(batchSize: number, interval: number)
 // Handler para a rota
 export async function GET() {
   const batchSize = 30; // Número de sites por lote
-  const interval = 3000; // Intervalo entre lotes em milissegundos (3 segundos)
+  const interval = 3000; // Intervalo entre lotes em milissegundos (10 segundos)
 
   try {
     await checkAndUpdateSitesInBatches(batchSize, interval);
