@@ -4,7 +4,7 @@
 
 ## 👥 Sobre o projeto
 
-Desenvolvido em parceria com [Hugo Vidal](https://github.com/iigorvidall), o projeto foi dividido da seguinte forma:
+Desenvolvido em parceria com [Hugo Vidal](https://github.com/VidalsHugo), o projeto foi dividido da seguinte forma:
 
 - **Igor Vidal** – responsável pelas automações e diagnósticos com IA:
   - Criação de fluxos no **n8n** para orquestrar as verificações periódicas nos sites
