@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌐 WebsiteCheck
 
-## Getting Started
+**WebsiteCheck** é um projeto colaborativo que oferece uma solução prática, robusta e inteligente para o monitoramento de sites. Combinando automações via n8n, inteligência artificial (IA) e um painel frontend moderno, o sistema permite acompanhar em tempo real se sites estão online ou offline — com alertas automáticos e diagnósticos explicativos sempre que algo dá errado.
 
-First, run the development server:
+## 👥 Sobre o projeto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Desenvolvido em parceria com [Hugo Vidal](https://github.com/iigorvidall), o projeto foi dividido da seguinte forma:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Igor Vidal** – responsável pelas automações e diagnósticos com IA:
+  - Criação de fluxos no **n8n** para orquestrar as verificações periódicas nos sites
+  - Utilização da API da **OpenAI (GPT)** para interpretar erros e gerar mensagens de alerta por e-mail com explicações e sugestões de solução
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Hugo Vidal** – responsável pelo frontend e backend do painel:
+  - Tecnologias: **Next.js**, **PostgreSQL**, **Prisma** e **shadcn/ui**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ⚙️ Como funciona
 
-## Learn More
+As URLs podem ser cadastradas de três formas:
+- Diretamente no painel web (hospedado via Railway)
+- Através de uma planilha Google (entrada em massa)
+- Importação automatizada de um banco de dados
 
-To learn more about Next.js, take a look at the following resources:
+Após o cadastro, os sites são periodicamente verificados. As mudanças de status (online/offline) são atualizadas em tempo real e refletidas automaticamente no painel de visualização.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ✨ Funcionalidades principais
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Visualização em tempo real dos sites monitorados
+- Filtro por status e busca por nome
+- Cadastro de administradores
+- Alertas automáticos por e-mail quando um site está OFF
+- Diagnóstico com IA: identifica o erro (ex: 404, 504), explica o motivo e sugere uma solução
 
-## Deploy on Vercel
+## 💡 Tecnologias utilizadas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Frontend e Backend**:  
+  - Next.js + Prisma + PostgreSQL  
+  - UI com shadcn/ui
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Automação + IA**:
+  - n8n para orquestração dos fluxos
+  - OpenAI GPT para interpretação de erros e diagnóstico inteligente
+
+Feito por [Igor Vidal](https://github.com/iigorvidall) e [Hugo Vidal](https://github.com/VidalsHugo)
